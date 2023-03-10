@@ -1,0 +1,26 @@
+include ALL:SPRITES
+
+// the all-sprites array.
+// The sprite multiplexer read this array with the sprite_shape index and gets the data for the sprite
+//
+// This word array MUST be implemented as a split array (separated in _low and _high)
+
+word array @all_sprite_data_table[1] = [
+  @CIRCLE_1,
+  @CIRCLE_2,
+  @CIRCLE_3,
+  @CIRCLE_4,
+  @CIRCLE_5,
+  @CIRCLE_6,
+  @CIRCLE_7,
+  @CIRCLE_8,
+  @CIRCLE_9,
+  @CIRCLE_10,
+  @CIRCLE_11,
+  @CIRCLE_12,
+  @CIRCLE_13,
+  @CIRCLE_14,
+  @CIRCLE_15,
+  @CIRCLE_16,
+  0,
+]

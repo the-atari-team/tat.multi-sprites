@@ -1,0 +1,63 @@
+program count
+
+lomem=$4000,runad
+
+byte colbk=@
+byte vcount=@
+
+word count
+byte i,j
+// byte a
+
+procedure increment()
+begin
+  count := count + 1
+end
+
+begin
+  // Demonstration loop
+  //  @init_fastscreen($bd80)
+  @init_fastscreen($bc40)
+  @init_set_bytes_per_line(40)
+
+  for j:=1 to 60 do         // loop for 60s
+  begin
+    for i:=1 to 50 do       // loop for 1s
+    begin
+//      position_sprites()
+
+//      @backcolorline($38)
+      count := 0
+      colbk := $0a
+
+      while vcount >= 112 do
+      begin
+        increment()
+        // count := count + 1
+      end
+      while vcount < 112 do
+      begin
+        increment()
+        // count := count + 1
+      end
+
+      colbk:=$0c
+      @fast_gotoxy(2,0)
+      colbk:=$0f
+      @printff("%d ", count)
+      colbk := $00
+
+//      wait_and_show_all_sprites()
+    end
+  end
+
+  @exit(0)
+end
+
+include "FAST_SCREEN_OUTPUT.INC"
+include "SCREEN_OUTPUT.INC"
+include "PRINTF.INC"
+include "GRAPHICS.INC"
+include "BASIC.INC"
+include "BACKCOLORLINE.INC"
+include "BREAKKEY.INC"

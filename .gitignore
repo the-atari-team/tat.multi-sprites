@@ -1,0 +1,20 @@
+compiler/bin
+firmware/ATARIXL.ROM
+
+.idea/
+
+# generated code by compiler/assembler
+*.COM
+*.65o
+*.ASM.inc
+*.lab
+*.log
+# build by compiler
+SPRITES.INC
+SPRTDATA.INC
+
+DEMO16SP.ASM
+DEMO16SP.lst
+start-multi-sprite.atr
+
+.insert.txt

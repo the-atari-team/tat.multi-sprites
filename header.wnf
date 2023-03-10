@@ -1,0 +1,21 @@
+// this header will read at first by each compiler run through
+
+const MAX_SPRITES=16
+
+// Sprites  count
+//  16       212
+//  14       256
+//  12       301
+//  10       336
+//   8       372
+//   4       455
+//   3       472
+//   0       539  Interrupts fressen ca 6%
+
+// ohne Interrupts
+//           663 ohne PMG
+//           563 mit PMG + Interrupts
+
+// proceduce increment() begin count := count + 1 end
+// while vcount<112 do increment()
+// ~33 Zyklen

@@ -1,0 +1,278 @@
+program demo16sp
+
+lomem=$4000,runad
+
+// --- GTIA ---
+byte array HPOSP[4]=@
+
+byte array HPOSM[4]=@
+
+byte array SIZEP[4]=@   // 53256
+
+byte PAL=@              // 1=PAL, $E=NTSC
+
+byte array COLPM[4]=@   // 53266
+byte array COLPF[4]=@   // 53270
+byte COLBK=@            // 53274
+
+byte array PCOLR[4]=@   // shadow from 53266-9
+byte array COLOR[5]=708 // shadow from 53270-4
+
+byte GRACTL=@           // 53277 // 2:Player an 1: Missiles an
+
+byte HITCLR=@ // 53278  // delete the collision registers
+
+// --- POKEY ---
+
+byte RANDOM=@ // 53770  // $d20a
+
+// --- ANTIC ---
+
+byte DMACTL=@           // 54272
+byte SDMCTL=@           // 559 // shadow from 54272 DMACTL
+
+byte CHACTL=@           // 54273
+byte CHACT=@
+
+word DLIST=@            // 54274
+
+byte PMBASE=@           // 54279 // 2kb range ($800)
+
+byte CHBASE=@           // 54281
+byte CHBAS=@            // shadow from 54281 (Font) 1k range ($400)
+
+byte WSYNC=@            // Write value will stop CPU
+
+byte VCOUNT=@           // vertical screen (line / 2) in PAL 0-155 in NTSC 0-131
+
+byte GPRIOR=@
+
+word SDLSTL=@
+
+
+const pm_addr = $B000
+
+procedure initPlayerMissile()
+begin
+  PCOLR[0]:=$02 // 704
+  PCOLR[1]:=$04
+  PCOLR[2]:=$06
+  PCOLR[3]:=$08
+  COLOR[2]:=2
+  COLOR[3]:=$FF
+
+  GPRIOR := $10+   // The 4 missiles are combined to a 5th player
+            $1     // Prioity player, screen, background
+
+  SDMCTL:= $20+    // DMA for Display List
+           $10+    // one line PM resolution
+           $08+    // DMA player
+           $04+    // DMA missiles
+           $02     // normal screen width (40bytes)
+
+  GRACTL:=3
+  PMBASE:=HI:pm_addr
+end
+
+
+byte array sprite_x[MAX_SPRITES] = @sprite_x
+byte array sprite_y[MAX_SPRITES] = @sprite_y
+byte array sprite_shape[MAX_SPRITES] = @sprite_shape
+byte array sprite_color[MAX_SPRITES] = @sprite_color
+
+// The sprites must be written only when the electron beam is below the lowest sprite to be displayed.
+
+procedure wait_and_show_all_sprites()
+begin
+//  @waitline(111)
+//  @backcolorline($88) // only to show where we are (light blue line)
+
+  @show_sprites()     // This function MUST call each 1/50s frame
+end
+
+byte x_,y_
+byte xmin,xmax,ymin,ymax
+
+byte array x[MAX_SPRITES]
+byte array y[MAX_SPRITES]
+byte array xstep[MAX_SPRITES]
+byte array ystep[MAX_SPRITES]
+
+byte array colors[MAX_SPRITES]
+
+byte i=203,j
+
+
+// tape measure on the right, we use missiles PMG for that
+//
+// See the DLIs, each produce a gray line.
+// the meter value in the @reset_meter function in file: multi-sprite-dli.INC must set
+// to the tape measure displayed value under first occurance of such gray line or you get wrong
+// sprite data.
+procedure init_tape_measure()
+begin
+  i := 48 + 160 - 2          // horizontal position of the tape measure
+  hposm[0] := i
+  hposm[1] := i-2
+  hposm[2] := i-4
+  hposm[3] := i-6
+
+  @move(adr:@tape_measure, pm_addr + $300, 248) // copy the array content to the missile data (pm_addr + $300)
+end
+
+const PM_X_OFFSET = 48
+const PM_Y_OFFSET = 32
+
+procedure init_sprite_start_position_and_colors()
+begin
+  for i:=0 to MAX_SPRITES-1 do
+  begin
+    y[i] := PM_Y_OFFSET + i * 8
+    x[i] := PM_X_OFFSET + i * 9
+
+    xstep[i] := 1
+    ystep[i] := 1
+    colors[i] := $0a + i * 16
+    sprite_shape[i] := i & 15
+  end
+end
+
+
+procedure position_sprites()
+local i
+begin
+  for i:=0 to MAX_SPRITES-1 do
+  begin
+    x_ := x[i]
+    y_ := y[i]
+
+    y_ := y_ + ystep[i]       // simple positioning of sprites
+    x_ := x_ + xstep[i]
+
+    if x_ >= xmax or x_ < xmin then
+    begin
+      xstep[i] := -xstep[i]
+    end
+
+    if y_ >= ymax or y_ < ymin then
+    begin
+      ystep[i] := -ystep[i]
+    end
+
+    // set a sprite (x, y, color, data)
+    sprite_color[i] := colors[i]
+    sprite_x[i] := x_
+    sprite_y[i] := y_
+    sprite_shape[i] := sprite_shape[i] + 1
+
+    // reset animation pointer
+    if sprite_shape[i] > 15 then sprite_shape[i] := 0
+
+    x[i] := x_
+    y[i] := y_
+  end
+end
+
+// MAIN Routine
+
+word count
+
+procedure increment()
+begin
+  count := count + 1
+end
+
+byte animate
+
+begin
+  @init_vbi()
+  @sleep(1)
+  @start_displaylist_interrupts()
+
+  initPlayerMissile()
+  @init_sprites()
+
+  init_tape_measure()
+
+  init_sprite_start_position_and_colors()
+
+  // frame, in which the sprites are moved
+  xmax := PM_X_OFFSET + 160 - 8
+  xmin := PM_X_OFFSET
+
+  ymax := PM_Y_OFFSET + 192 - 16
+  ymin := PM_Y_OFFSET
+
+  @printf("\nSimple Demonstration of %d sprites", MAX_SPRITES)
+
+  // Demonstration loop
+  @init_fastscreen($bc40)
+  @init_set_bytes_per_line(40)
+
+  position_sprites()        // ; 3380 cycles
+  animate := 10
+
+  for j:=1 to 60 do         // loop for 60s
+  begin
+    for i:=1 to 50 do       // loop for 1s
+    begin
+      if animate != 0 then
+      begin
+        animate := animate - 1
+      end
+      else
+      begin
+        animate := 1       // 25 pictures per sec
+//        animate := 2     // 16.6 pics per sec
+//        animate := 3     // 12.5 pics per sec
+
+        position_sprites()    // ; 3380 cycles
+      end
+      count := 0
+
+// try to do something and count it how often it occurs
+      while vcount >= 112 do
+      begin
+        increment()
+      end
+      while vcount < 112 do
+      begin
+        increment()
+      end
+
+      @backcolorline($88) // only to show where we are (light blue line)
+
+// show how often we could count something
+      @fast_gotoxy(2,0)
+      @printff("%d ", count)
+
+      wait_and_show_all_sprites()
+    end
+  end
+
+  @stop_displaylist_interrupts()
+
+  @deinit_vbi()
+
+  hposm[0] := 0
+  hposm[1] := 0
+  hposm[2] := 0
+  hposm[3] := 0
+
+  @exit(0)
+end
+
+include "FAST_SCREEN_OUTPUT.INC"
+include "SCREEN_OUTPUT.INC"
+include "PRINTF.INC"
+include "FILLBYTE.INC"
+include "BASIC.INC"
+include "BACKCOLORLINE.INC"
+include "BREAKKEY.INC"
+
+include "displaylist.INC"
+include "dli.INC"
+include "multi-sprite-dli.INC"
+include "multi-sprite-multiplexer.INC"
+include "SPRITES.INC"
+include "SPRTDATA.INC"
