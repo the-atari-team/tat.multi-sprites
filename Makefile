@@ -12,8 +12,8 @@ endif
 
 WNFC_OPTIONS='-O 2'
 
-FIRMWARE=../../firmware
-COMPILER=..
+FIRMWARE=firmware
+COMPILER=compiler
 
 .PHONY: copy_atari_files prepare_atari clean all prepare basic_tests
 

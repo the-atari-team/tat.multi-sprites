@@ -57,7 +57,6 @@ end
 include "FAST_SCREEN_OUTPUT.INC"
 include "SCREEN_OUTPUT.INC"
 include "PRINTF.INC"
-include "GRAPHICS.INC"
 include "BASIC.INC"
 include "BACKCOLORLINE.INC"
 include "BREAKKEY.INC"
